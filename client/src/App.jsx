@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import { getSocket } from './utils/socket';
 
-const TEST_ROOM_ID = '6a54b82798443a0b343f036d';
+const TEST_ROOM_ID = '6a562163c522bbff01d1bd66';
 
 function Home() {
   const { user, logout } = useAuth();
