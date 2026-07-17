@@ -1,8 +1,10 @@
 import { Send, Smile, Paperclip, Phone, Video, Info, Check, CheckCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { getSocket } from '../utils/socket';
 
 function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }) {
   const [text, setText] = useState('');
+  const typingTimeoutRef = useRef(null);
 
   const getOtherMember = () => room?.members.find((m) => m._id !== currentUserId);
 
@@ -14,11 +16,26 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
 
   const isOnline = () => !room?.isGroup && getOtherMember()?.isOnline;
 
+  const handleChange = (e) => {
+    setText(e.target.value);
+    const socket = getSocket();
+    if (!socket || !room) return;
+
+    socket.emit('typing', { roomId: room._id });
+
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('stop_typing', { roomId: room._id });
+    }, 1500);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
     onSendMessage(text);
     setText('');
+    const socket = getSocket();
+    if (socket && room) socket.emit('stop_typing', { roomId: room._id });
   };
 
   if (!room) {
@@ -45,7 +62,7 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
               {getRoomName().charAt(0).toUpperCase()}
             </div>
             {isOnline() && (
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full pulse-online" />
             )}
           </div>
           <div>
@@ -69,17 +86,25 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-3">
+      <div
+        className="flex-1 overflow-y-auto p-5 space-y-3"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #e8ecff 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+          backgroundColor: '#fafbff'
+        }}
+      >
         {messages.length === 0 ? (
           <div className="text-center text-sm text-slate-400 mt-10">No messages yet. Say hello 👋</div>
         ) : (
           messages.map((msg) => {
             const isOwn = msg.sender._id === currentUserId;
             const isRead = msg.readBy?.length > 1;
+            const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return (
-              <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-message-in`}>
                 <div
-                  className={`max-w-xs sm:max-w-md px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                  className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm ${
                     isOwn
                       ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md'
                       : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
@@ -89,15 +114,23 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
                     <p className="text-xs font-medium text-indigo-500 mb-0.5">{msg.sender.name}</p>
                   )}
                   <p>{msg.text}</p>
-                  {isOwn && (
-                    <div className="flex justify-end mt-1">
-                      {isRead ? <CheckCheck size={14} className="text-indigo-200" /> : <Check size={14} className="text-indigo-200" />}
-                    </div>
-                  )}
+                  <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <span className={`text-[10px] ${isOwn ? 'text-indigo-200' : 'text-slate-400'}`}>{time}</span>
+                    {isOwn && (isRead ? <CheckCheck size={13} className="text-indigo-200" /> : <Check size={13} className="text-indigo-200" />)}
+                  </div>
                 </div>
               </div>
             );
           })
+        )}
+        {typingUser && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-slate-200 rounded-[22px] rounded-bl-md px-4 py-3 flex items-center gap-1 shadow-sm">
+              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+            </div>
+          </div>
         )}
       </div>
 
@@ -112,7 +145,7 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
         <input
           type="text"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           placeholder="Message"
           className="flex-1 bg-slate-100 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />

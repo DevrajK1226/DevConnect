@@ -70,7 +70,7 @@ function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat }) {
                   {getRoomName(room).charAt(0).toUpperCase()}
                 </div>
                 {isOnline(room) && (
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full pulse-online" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
