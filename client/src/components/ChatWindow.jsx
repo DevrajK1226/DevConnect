@@ -1,17 +1,33 @@
-import { Send, Smile, Paperclip, Phone, Video, Info, Check, CheckCheck } from 'lucide-react';
-import { useState, useRef } from 'react';
-import { getSocket } from '../utils/socket';
+import {
+  Send,
+  Smile,
+  Paperclip,
+  Phone,
+  Video,
+  Info,
+  Check,
+  CheckCheck,
+} from "lucide-react";
+import { useState, useRef } from "react";
+import { getSocket } from "../utils/socket";
 
-function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }) {
-  const [text, setText] = useState('');
+function ChatWindow({
+  room,
+  messages,
+  currentUserId,
+  onSendMessage,
+  typingUser,
+}) {
+  const [text, setText] = useState("");
   const typingTimeoutRef = useRef(null);
 
-  const getOtherMember = () => room?.members.find((m) => m._id !== currentUserId);
+  const getOtherMember = () =>
+    room?.members.find((m) => m._id !== currentUserId);
 
   const getRoomName = () => {
-    if (!room) return '';
+    if (!room) return "";
     if (room.isGroup) return room.name;
-    return getOtherMember()?.name || 'Unknown User';
+    return getOtherMember()?.name || "Unknown User";
   };
 
   const isOnline = () => !room?.isGroup && getOtherMember()?.isOnline;
@@ -21,11 +37,11 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
     const socket = getSocket();
     if (!socket || !room) return;
 
-    socket.emit('typing', { roomId: room._id });
+    socket.emit("typing", { roomId: room._id });
 
     clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('stop_typing', { roomId: room._id });
+      socket.emit("stop_typing", { roomId: room._id });
     }, 1500);
   };
 
@@ -33,9 +49,9 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
     e.preventDefault();
     if (!text.trim()) return;
     onSendMessage(text);
-    setText('');
+    setText("");
     const socket = getSocket();
-    if (socket && room) socket.emit('stop_typing', { roomId: room._id });
+    if (socket && room) socket.emit("stop_typing", { roomId: room._id });
   };
 
   if (!room) {
@@ -45,8 +61,12 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
           <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
             <Send size={24} className="text-indigo-300" />
           </div>
-          <p className="text-lg font-medium text-slate-500">Select a conversation</p>
-          <p className="text-sm">Choose a chat from the sidebar to start messaging</p>
+          <p className="text-lg font-medium text-slate-500">
+            Select a conversation
+          </p>
+          <p className="text-sm">
+            Choose a chat from the sidebar to start messaging
+          </p>
         </div>
       </div>
     );
@@ -66,22 +86,32 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
             )}
           </div>
           <div>
-            <p className="font-semibold text-sm text-slate-800">{getRoomName()}</p>
+            <p className="font-semibold text-sm text-slate-800">
+              {getRoomName()}
+            </p>
             <p className="text-xs text-slate-400">
               {typingUser ? (
-                <span className="text-indigo-500">{typingUser} is typing...</span>
+                <span className="text-indigo-500">
+                  {typingUser} is typing...
+                </span>
               ) : isOnline() ? (
                 <span className="text-green-500">Online</span>
               ) : (
-                'Offline'
+                "Offline"
               )}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1 text-slate-400">
-          <button className="p-2 hover:bg-slate-100 rounded-full transition"><Phone size={18} /></button>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition"><Video size={18} /></button>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition"><Info size={18} /></button>
+          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+            <Phone size={18} />
+          </button>
+          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+            <Video size={18} />
+          </button>
+          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+            <Info size={18} />
+          </button>
         </div>
       </div>
 
@@ -89,34 +119,56 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
       <div
         className="flex-1 overflow-y-auto p-5 space-y-3"
         style={{
-          backgroundImage: 'radial-gradient(circle, #e8ecff 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-          backgroundColor: '#fafbff'
+          backgroundImage:
+            "radial-gradient(circle, #e8ecff 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+          backgroundColor: "#fafbff",
         }}
       >
         {messages.length === 0 ? (
-          <div className="text-center text-sm text-slate-400 mt-10">No messages yet. Say hello 👋</div>
+          <div className="text-center text-sm text-slate-400 mt-10">
+            No messages yet. Say hello 👋
+          </div>
         ) : (
           messages.map((msg) => {
             const isOwn = msg.sender._id === currentUserId;
             const isRead = msg.readBy?.length > 1;
-            const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const time = new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
             return (
-              <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-message-in`}>
+              <div
+                key={msg._id}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"} animate-message-in`}
+              >
                 <div
                   className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm ${
                     isOwn
-                      ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md'
-                      : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
+                      ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
+                      : "bg-white text-slate-800 border border-slate-200 rounded-bl-md"
                   }`}
                 >
                   {!isOwn && room.isGroup && (
-                    <p className="text-xs font-medium text-indigo-500 mb-0.5">{msg.sender.name}</p>
+                    <p className="text-xs font-medium text-indigo-500 mb-0.5">
+                      {msg.sender.name}
+                    </p>
                   )}
                   <p>{msg.text}</p>
-                  <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <span className={`text-[10px] ${isOwn ? 'text-indigo-200' : 'text-slate-400'}`}>{time}</span>
-                    {isOwn && (isRead ? <CheckCheck size={13} className="text-indigo-200" /> : <Check size={13} className="text-indigo-200" />)}
+                  <div
+                    className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}
+                  >
+                    <span
+                      className={`text-[10px] ${isOwn ? "text-indigo-200" : "text-slate-400"}`}
+                    >
+                      {time}
+                    </span>
+                    {isOwn &&
+                      (isRead ? (
+                        <CheckCheck size={13} className="text-indigo-200" />
+                      ) : (
+                        <Check size={13} className="text-indigo-200" />
+                      ))}
                   </div>
                 </div>
               </div>
@@ -135,11 +187,20 @@ function ChatWindow({ room, messages, currentUserId, onSendMessage, typingUser }
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="bg-white border-t border-slate-200 p-3 flex items-center gap-2">
-        <button type="button" className="text-slate-400 hover:text-slate-600 p-2">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white border-t border-slate-200 p-3 flex items-center gap-2"
+      >
+        <button
+          type="button"
+          className="text-slate-400 hover:text-slate-600 p-2"
+        >
           <Paperclip size={19} />
         </button>
-        <button type="button" className="text-slate-400 hover:text-slate-600 p-2">
+        <button
+          type="button"
+          className="text-slate-400 hover:text-slate-600 p-2"
+        >
           <Smile size={20} />
         </button>
         <input

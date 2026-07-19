@@ -1,7 +1,7 @@
-import { Search, MessageSquarePlus, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { Search, MessageSquarePlus, Users, LogOut } from "lucide-react";
 
-function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat }) {
+function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat, onNewGroup }) {
   const { user, logout } = useAuth();
 
   const getOtherMember = (room) => room.members.find((m) => m._id !== user._id);
@@ -86,11 +86,17 @@ function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm text-slate-800 truncate">
-                    {getRoomName(room)}
-                  </p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="font-medium text-sm text-slate-800 truncate">
+                      {getRoomName(room)}
+                    </p>
+                    {room.isGroup && (
+                      <span className="text-[10px] text-slate-400 shrink-0">
+                        ({room.members.length})
+                      </span>
+                    )}
+                  </div>
                   {room.lastMessage?.time && (
-                    
                     <span className="text-xs text-slate-400 shrink-0 ml-2">
                       {room.lastMessage.time}
                     </span>
@@ -115,13 +121,20 @@ function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat }) {
       </div>
 
       {/* New chat button */}
-      <div className="p-3 border-t border-slate-100">
+      <div className="p-3 border-t border-slate-100 flex gap-2">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-indigo-500 to-violet-600 text-white py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-linear-to-r from-indigo-500 to-violet-600 text-white py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition"
         >
           <MessageSquarePlus size={16} />
-          New Chat
+          Chat
+        </button>
+        <button
+          onClick={onNewGroup}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 text-slate-700 py-2.5 rounded-full text-sm font-medium hover:bg-slate-200 transition"
+        >
+          <Users size={16} />
+          Group
         </button>
       </div>
     </div>

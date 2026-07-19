@@ -2,9 +2,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import NewChatModal from "../components/NewChatModal";
+import NewGroupModal from "../components/NewGroupModal";
 import { useAuth } from "../context/AuthContext";
 import { getSocket } from "../utils/socket";
-import { getRooms, createRoom, getMessages } from "../utils/chatApi";
+import {
+  getRooms,
+  createRoom,
+  createGroupRoom,
+  getMessages,
+} from "../utils/chatApi";
 
 function Chat() {
   const { user } = useAuth();
@@ -12,6 +18,7 @@ function Chat() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false); // ✅ moved to top level
   const [typingUser, setTypingUser] = useState(null);
   const activeRoomRef = useRef(null);
 
@@ -28,32 +35,37 @@ function Chat() {
     if (!socket) return;
 
     const handleReceive = (msg) => {
-  const isActiveRoom = activeRoomRef.current && msg.room === activeRoomRef.current._id;
-  console.log('📥 handleReceive fired | msg.room:', msg.room, '| activeRoom:', activeRoomRef.current?._id, '| isActiveRoom:', isActiveRoom);
+      const isActiveRoom =
+        activeRoomRef.current && msg.room === activeRoomRef.current._id;
 
-  if (isActiveRoom) {
-    setMessages((prev) => [...prev, msg]);
-  }
+      if (isActiveRoom) {
+        setMessages((prev) => [...prev, msg]);
+      }
 
-  setRooms((prev) => {
-    const updated = prev.map((r) => {
-      if (r._id !== msg.room) return r;
-      const newUnread = isActiveRoom ? 0 : (r.unreadCount || 0) + 1;
-      console.log(`🔢 Updating room ${r._id} unreadCount: ${r.unreadCount} → ${newUnread}`);
-      return {
-        ...r,
-        lastMessage: { text: msg.text, time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-        unreadCount: newUnread
-      };
-    });
-    const roomIndex = updated.findIndex((r) => r._id === msg.room);
-    if (roomIndex > 0) {
-      const [room] = updated.splice(roomIndex, 1);
-      updated.unshift(room);
-    }
-    return updated;
-  });
-};
+      setRooms((prev) => {
+        const updated = prev.map((r) => {
+          if (r._id !== msg.room) return r;
+          const newUnread = isActiveRoom ? 0 : (r.unreadCount || 0) + 1;
+          return {
+            ...r,
+            lastMessage: {
+              text: msg.text,
+              time: new Date(msg.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
+            unreadCount: newUnread,
+          };
+        });
+        const roomIndex = updated.findIndex((r) => r._id === msg.room);
+        if (roomIndex > 0) {
+          const [room] = updated.splice(roomIndex, 1);
+          updated.unshift(room);
+        }
+        return updated;
+      });
+    };
 
     const handleTyping = ({ name }) => setTypingUser(name);
     const handleStopTyping = () => setTypingUser(null);
@@ -87,7 +99,6 @@ function Chat() {
     setActiveRoom(room);
     setTypingUser(null);
 
-    // Clear unread count for this room immediately in local state
     setRooms((prev) =>
       prev.map((r) => (r._id === room._id ? { ...r, unreadCount: 0 } : r)),
     );
@@ -123,6 +134,21 @@ function Chat() {
     }
   };
 
+  // ✅ moved to top level, outside handleReceive/useEffect
+  const handleCreateGroup = async (name, memberIds) => {
+    try {
+      const room = await createGroupRoom(name, memberIds);
+      setRooms((prev) => [room, ...prev]);
+      setShowNewGroup(false);
+      handleSelectRoom(room);
+
+      const socket = getSocket();
+      socket?.emit("join_room", room._id);
+    } catch (err) {
+      console.error("Failed to create group:", err);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
@@ -130,6 +156,7 @@ function Chat() {
         activeRoomId={activeRoom?._id}
         onSelectRoom={handleSelectRoom}
         onNewChat={() => setShowNewChat(true)}
+        onNewGroup={() => setShowNewGroup(true)}
       />
       <ChatWindow
         room={activeRoom}
@@ -142,6 +169,12 @@ function Chat() {
         <NewChatModal
           onClose={() => setShowNewChat(false)}
           onSelectUser={handleSelectUserForNewChat}
+        />
+      )}
+      {showNewGroup && (
+        <NewGroupModal
+          onClose={() => setShowNewGroup(false)}
+          onCreateGroup={handleCreateGroup}
         />
       )}
     </div>

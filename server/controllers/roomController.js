@@ -18,7 +18,7 @@ const createRoom = async (req, res) => {
         isGroup: true,
         members: [userId, ...members],
         createdBy: userId
-      });
+      }); 
       const populatedRoom = await room.populate('members', 'name email isOnline lastSeen');
       return res.status(201).json(populatedRoom);
     }
