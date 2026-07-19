@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import NewChatModal from "../components/NewChatModal";
@@ -28,24 +28,32 @@ function Chat() {
     if (!socket) return;
 
     const handleReceive = (msg) => {
-      if (activeRoomRef.current && msg.room === activeRoomRef.current._id) {
-        setMessages((prev) => [...prev, msg]);
-      }
+  const isActiveRoom = activeRoomRef.current && msg.room === activeRoomRef.current._id;
+  console.log('📥 handleReceive fired | msg.room:', msg.room, '| activeRoom:', activeRoomRef.current?._id, '| isActiveRoom:', isActiveRoom);
 
-      setRooms((prev) => {
-        const updated = prev.map((r) =>
-          r._id === msg.room
-            ? { ...r, lastMessage: { text: msg.text, time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } }
-            : r
-        );
-        const roomIndex = updated.findIndex((r) => r._id === msg.room);
-        if (roomIndex > 0) {
-          const [room] = updated.splice(roomIndex, 1);
-          updated.unshift(room);
-        }
-        return updated;
-      });
-    };
+  if (isActiveRoom) {
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  setRooms((prev) => {
+    const updated = prev.map((r) => {
+      if (r._id !== msg.room) return r;
+      const newUnread = isActiveRoom ? 0 : (r.unreadCount || 0) + 1;
+      console.log(`🔢 Updating room ${r._id} unreadCount: ${r.unreadCount} → ${newUnread}`);
+      return {
+        ...r,
+        lastMessage: { text: msg.text, time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+        unreadCount: newUnread
+      };
+    });
+    const roomIndex = updated.findIndex((r) => r._id === msg.room);
+    if (roomIndex > 0) {
+      const [room] = updated.splice(roomIndex, 1);
+      updated.unshift(room);
+    }
+    return updated;
+  });
+};
 
     const handleTyping = ({ name }) => setTypingUser(name);
     const handleStopTyping = () => setTypingUser(null);
@@ -54,43 +62,51 @@ function Chat() {
       if (activeRoomRef.current && activeRoomRef.current._id === roomId) {
         setMessages((prev) =>
           prev.map((m) =>
-            m.readBy.includes(userId) ? m : { ...m, readBy: [...m.readBy, userId] }
-          )
+            m.readBy.includes(userId)
+              ? m
+              : { ...m, readBy: [...m.readBy, userId] },
+          ),
         );
       }
     };
 
-    socket.on('receive_message', handleReceive);
-    socket.on('user_typing', handleTyping);
-    socket.on('user_stop_typing', handleStopTyping);
-    socket.on('messages_read', handleMessagesRead);
+    socket.on("receive_message", handleReceive);
+    socket.on("user_typing", handleTyping);
+    socket.on("user_stop_typing", handleStopTyping);
+    socket.on("messages_read", handleMessagesRead);
 
     return () => {
-      socket.off('receive_message', handleReceive);
-      socket.off('user_typing', handleTyping);
-      socket.off('user_stop_typing', handleStopTyping);
-      socket.off('messages_read', handleMessagesRead);
+      socket.off("receive_message", handleReceive);
+      socket.off("user_typing", handleTyping);
+      socket.off("user_stop_typing", handleStopTyping);
+      socket.off("messages_read", handleMessagesRead);
     };
   }, []);
 
   const handleSelectRoom = useCallback(async (room) => {
     setActiveRoom(room);
     setTypingUser(null);
+
+    // Clear unread count for this room immediately in local state
+    setRooms((prev) =>
+      prev.map((r) => (r._id === room._id ? { ...r, unreadCount: 0 } : r)),
+    );
+
     const socket = getSocket();
-    socket?.emit('join_room', room._id);
+    socket?.emit("join_room", room._id);
     try {
       const msgs = await getMessages(room._id);
       setMessages(msgs);
-      socket?.emit('mark_read', { roomId: room._id });
+      socket?.emit("mark_read", { roomId: room._id });
     } catch (err) {
-      console.error('Failed to load messages:', err);
+      console.error("Failed to load messages:", err);
     }
   }, []);
 
   const handleSendMessage = (text) => {
     const socket = getSocket();
     if (!socket || !activeRoom) return;
-    socket.emit('send_message', { roomId: activeRoom._id, text });
+    socket.emit("send_message", { roomId: activeRoom._id, text });
   };
 
   const handleSelectUserForNewChat = async (selectedUser) => {
@@ -103,7 +119,7 @@ function Chat() {
       setShowNewChat(false);
       handleSelectRoom(room);
     } catch (err) {
-      console.error('Failed to create room:', err);
+      console.error("Failed to create room:", err);
     }
   };
 
@@ -123,7 +139,10 @@ function Chat() {
         typingUser={typingUser}
       />
       {showNewChat && (
-        <NewChatModal onClose={() => setShowNewChat(false)} onSelectUser={handleSelectUserForNewChat} />
+        <NewChatModal
+          onClose={() => setShowNewChat(false)}
+          onSelectUser={handleSelectUserForNewChat}
+        />
       )}
     </div>
   );

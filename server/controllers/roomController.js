@@ -1,5 +1,6 @@
 const Room = require('../models/Room');
 const User = require('../models/User');
+const Message = require('../models/Message');
 
 // @route POST /api/rooms
 // @desc  Create a 1-on-1 room OR a group room
@@ -57,7 +58,18 @@ const getUserRooms = async (req, res) => {
       .populate('members', 'name email isOnline lastSeen')
       .sort({ updatedAt: -1 });
 
-    res.status(200).json(rooms);
+    // For each room, count messages not yet read by this user
+    const roomsWithUnread = await Promise.all(
+      rooms.map(async (room) => {
+        const unreadCount = await Message.countDocuments({
+          room: room._id,
+          readBy: { $ne: req.user._id }
+        });
+        return { ...room.toObject(), unreadCount };
+      })
+    );
+
+    res.status(200).json(roomsWithUnread);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
