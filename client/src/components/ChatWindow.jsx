@@ -7,6 +7,7 @@ import {
   Info,
   Check,
   CheckCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { getSocket } from "../utils/socket";
@@ -17,6 +18,7 @@ function ChatWindow({
   currentUserId,
   onSendMessage,
   typingUser,
+  onBack,
 }) {
   const [text, setText] = useState("");
   const typingTimeoutRef = useRef(null);
@@ -58,7 +60,7 @@ function ChatWindow({
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50">
         <div className="text-center text-slate-400">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-linear-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
             <Send size={24} className="text-indigo-300" />
           </div>
           <p className="text-lg font-medium text-slate-500">
@@ -77,8 +79,14 @@ function ChatWindow({
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="sm:hidden text-slate-400 hover:text-slate-600 p-1 -ml-1"
+          >
+            <ArrowLeft size={20} />
+          </button>
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
               {getRoomName().charAt(0).toUpperCase()}
             </div>
             {isOnline() && (
@@ -145,7 +153,7 @@ function ChatWindow({
                 <div
                   className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm ${
                     isOwn
-                      ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
+                      ? "bg-linear-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
                       : "bg-white text-slate-800 border border-slate-200 rounded-bl-md"
                   }`}
                 >
@@ -213,7 +221,7 @@ function ChatWindow({
         <button
           type="submit"
           disabled={!text.trim()}
-          className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
+          className="bg-linear-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
         >
           <Send size={18} />
         </button>

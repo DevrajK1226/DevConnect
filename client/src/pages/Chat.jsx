@@ -4,7 +4,7 @@ import ChatWindow from "../components/ChatWindow";
 import NewChatModal from "../components/NewChatModal";
 import NewGroupModal from "../components/NewGroupModal";
 import { useAuth } from "../context/AuthContext";
-import { getSocket } from "../utils/socket";
+import { getSocket, onConnectionChange } from "../utils/socket";
 import {
   getRooms,
   createRoom,
@@ -15,11 +15,15 @@ import {
 function Chat() {
   const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(true);
+  const [roomsError, setRoomsError] = useState(false);
   const [activeRoom, setActiveRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [showNewChat, setShowNewChat] = useState(false);
-  const [showNewGroup, setShowNewGroup] = useState(false); // ✅ moved to top level
+  const [showNewGroup, setShowNewGroup] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  const [showSidebarMobile, setShowSidebarMobile] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState("connected");
   const activeRoomRef = useRef(null);
 
   useEffect(() => {
@@ -27,7 +31,18 @@ function Chat() {
   }, [activeRoom]);
 
   useEffect(() => {
-    getRooms().then(setRooms).catch(console.error);
+    getRooms()
+      .then((data) => {
+        setRooms(data);
+        setRoomsError(false);
+      })
+      .catch(() => setRoomsError(true))
+      .finally(() => setRoomsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onConnectionChange(setConnectionStatus);
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -98,6 +113,7 @@ function Chat() {
   const handleSelectRoom = useCallback(async (room) => {
     setActiveRoom(room);
     setTypingUser(null);
+    setShowSidebarMobile(false);
 
     setRooms((prev) =>
       prev.map((r) => (r._id === room._id ? { ...r, unreadCount: 0 } : r)),
@@ -134,7 +150,6 @@ function Chat() {
     }
   };
 
-  // ✅ moved to top level, outside handleReceive/useEffect
   const handleCreateGroup = async (name, memberIds) => {
     try {
       const room = await createGroupRoom(name, memberIds);
@@ -150,21 +165,39 @@ function Chat() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        rooms={rooms}
-        activeRoomId={activeRoom?._id}
-        onSelectRoom={handleSelectRoom}
-        onNewChat={() => setShowNewChat(true)}
-        onNewGroup={() => setShowNewGroup(true)}
-      />
-      <ChatWindow
-        room={activeRoom}
-        messages={messages}
-        currentUserId={user?._id}
-        onSendMessage={handleSendMessage}
-        typingUser={typingUser}
-      />
+    <div className="flex h-screen overflow-hidden relative">
+      {(connectionStatus === "disconnected" ||
+        connectionStatus === "error") && (
+        <div className="absolute top-0 left-0 right-0 bg-amber-500 text-white text-xs text-center py-1.5 z-50">
+          Reconnecting...
+        </div>
+      )}
+
+      <div className={`${showSidebarMobile ? "flex" : "hidden"} sm:flex`}>
+        <Sidebar
+          rooms={rooms}
+          roomsLoading={roomsLoading}
+          roomsError={roomsError}
+          activeRoomId={activeRoom?._id}
+          onSelectRoom={handleSelectRoom}
+          onNewChat={() => setShowNewChat(true)}
+          onNewGroup={() => setShowNewGroup(true)}
+        />
+      </div>
+
+      <div
+        className={`${showSidebarMobile ? "hidden" : "flex"} sm:flex flex-1`}
+      >
+        <ChatWindow
+          room={activeRoom}
+          messages={messages}
+          currentUserId={user?._id}
+          onSendMessage={handleSendMessage}
+          typingUser={typingUser}
+          onBack={() => setShowSidebarMobile(true)}
+        />
+      </div>
+
       {showNewChat && (
         <NewChatModal
           onClose={() => setShowNewChat(false)}

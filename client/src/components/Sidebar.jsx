@@ -1,7 +1,15 @@
 import { useAuth } from "../context/AuthContext";
 import { Search, MessageSquarePlus, Users, LogOut } from "lucide-react";
 
-function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat, onNewGroup }) {
+function Sidebar({
+  rooms,
+  roomsLoading,
+  roomsError,
+  activeRoomId,
+  onSelectRoom,
+  onNewChat,
+  onNewGroup,
+}) {
   const { user, logout } = useAuth();
 
   const getOtherMember = (room) => room.members.find((m) => m._id !== user._id);
@@ -63,7 +71,23 @@ function Sidebar({ rooms, activeRoomId, onSelectRoom, onNewChat, onNewGroup }) {
 
       {/* Room list */}
       <div className="flex-1 overflow-y-auto">
-        {rooms.length === 0 ? (
+        {roomsLoading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="w-12 h-12 rounded-full bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-slate-200 rounded w-2/3" />
+                  <div className="h-2.5 bg-slate-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : roomsError ? (
+          <div className="p-6 text-center text-sm text-red-400">
+            Couldn't connect to server. Retrying...
+          </div>
+        ) : rooms.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-400">
             No conversations yet. Start a new chat!
           </div>
