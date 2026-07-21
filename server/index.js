@@ -50,7 +50,11 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('send_message', async ({ roomId, text }) => {
-    console.log(`📩 send_message from ${socket.user.name} | room: ${roomId} | text: ${text}`);
+    const trimmedText = text?.trim();
+    if (!trimmedText || trimmedText.length > 1000) {
+      return socket.emit('error_message', { message: 'Invalid message' });
+    }
+    console.log(`📩 send_message from ${socket.user.name} | room: ${roomId} | text: ${trimmedText}`);
     try {
       const room = await Room.findById(roomId);
       if (!room || !room.members.includes(socket.user._id)) {
@@ -61,15 +65,11 @@ io.on('connection', async (socket) => {
       const message = await Message.create({
         room: roomId,
         sender: socket.user._id,
-        text,
+        text: trimmedText,
         readBy: [socket.user._id]
       });
 
       const populatedMessage = await message.populate('sender', 'name email');
-
-      const roomSockets = await io.in(roomId).fetchSockets();
-      console.log(`📡 Broadcasting to ${roomSockets.length} socket(s) in room ${roomId}`);
-
       io.to(roomId).emit('receive_message', populatedMessage);
     } catch (error) {
       console.error('send_message error:', error);

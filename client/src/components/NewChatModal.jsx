@@ -25,7 +25,10 @@ function NewChatModal({ onClose, onSelectUser }) {
           {loading ? (
             <p className="p-5 text-sm text-slate-400 text-center">Loading users...</p>
           ) : users.length === 0 ? (
-            <p className="p-5 text-sm text-slate-400 text-center">No other users found</p>
+            <div className="p-6 text-center text-sm text-slate-400">
+              <p>No other users yet.</p>
+              <p className="mt-1">Invite a friend to register and start chatting!</p>
+            </div>
           ) : (
             users.map((u) => (
               <button

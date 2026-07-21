@@ -9,7 +9,7 @@ import {
   CheckCheck,
   ArrowLeft,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getSocket } from "../utils/socket";
 
 function ChatWindow({
@@ -21,7 +21,13 @@ function ChatWindow({
   onBack,
 }) {
   const [text, setText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const typingTimeoutRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typingUser]);
 
   const getOtherMember = () =>
     room?.members.find((m) => m._id !== currentUserId);
@@ -49,18 +55,24 @@ function ChatWindow({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    onSendMessage(text);
+    const trimmed = text.trim();
+    if (!trimmed || isSending) return;
+
+    setIsSending(true);
+    onSendMessage(trimmed);
     setText("");
+
     const socket = getSocket();
     if (socket && room) socket.emit("stop_typing", { roomId: room._id });
+
+    setTimeout(() => setIsSending(false), 300);
   };
 
   if (!room) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50">
         <div className="text-center text-slate-400">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-linear-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
             <Send size={24} className="text-indigo-300" />
           </div>
           <p className="text-lg font-medium text-slate-500">
@@ -86,7 +98,7 @@ function ChatWindow({
             <ArrowLeft size={20} />
           </button>
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
               {getRoomName().charAt(0).toUpperCase()}
             </div>
             {isOnline() && (
@@ -102,6 +114,8 @@ function ChatWindow({
                 <span className="text-indigo-500">
                   {typingUser} is typing...
                 </span>
+              ) : room.isGroup ? (
+                `${room.members.length} members`
               ) : isOnline() ? (
                 <span className="text-green-500">Online</span>
               ) : (
@@ -153,7 +167,7 @@ function ChatWindow({
                 <div
                   className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm ${
                     isOwn
-                      ? "bg-linear-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
+                      ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
                       : "bg-white text-slate-800 border border-slate-200 rounded-bl-md"
                   }`}
                 >
@@ -192,6 +206,7 @@ function ChatWindow({
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -216,12 +231,13 @@ function ChatWindow({
           value={text}
           onChange={handleChange}
           placeholder="Message"
+          maxLength={1000}
           className="flex-1 bg-slate-100 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
         <button
           type="submit"
           disabled={!text.trim()}
-          className="bg-linear-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
+          className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
         >
           <Send size={18} />
         </button>
