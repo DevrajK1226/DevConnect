@@ -72,7 +72,7 @@ function ChatWindow({
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50">
         <div className="text-center text-slate-400">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-linear-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
             <Send size={24} className="text-indigo-300" />
           </div>
           <p className="text-lg font-medium text-slate-500">
@@ -98,7 +98,7 @@ function ChatWindow({
             <ArrowLeft size={20} />
           </button>
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-medium">
               {getRoomName().charAt(0).toUpperCase()}
             </div>
             {isOnline() && (
@@ -139,7 +139,7 @@ function ChatWindow({
 
       {/* Messages */}
       <div
-        className="flex-1 overflow-y-auto p-5 space-y-3"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3"
         style={{
           backgroundImage:
             "radial-gradient(circle, #e8ecff 1px, transparent 1px)",
@@ -162,12 +162,12 @@ function ChatWindow({
             return (
               <div
                 key={msg._id}
-                className={`flex ${isOwn ? "justify-end" : "justify-start"} animate-message-in`}
+                className={`flex min-w-0 ${isOwn ? "justify-end" : "justify-start"} animate-message-in`}
               >
                 <div
-                  className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm ${
+                  className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm break-all ${
                     isOwn
-                      ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
+                      ? "bg-linear-to-br from-indigo-500 to-violet-600 text-white rounded-br-md"
                       : "bg-white text-slate-800 border border-slate-200 rounded-bl-md"
                   }`}
                 >
@@ -237,7 +237,7 @@ function ChatWindow({
         <button
           type="submit"
           disabled={!text.trim()}
-          className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
+          className="bg-linear-to-br from-indigo-500 to-violet-600 text-white p-2.5 rounded-full hover:opacity-90 transition disabled:opacity-40"
         >
           <Send size={18} />
         </button>
