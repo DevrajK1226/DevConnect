@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getSocket } from "../utils/socket";
+import RoomInfoPanel from "./RoomInfoPanel";
 
 function ChatWindow({
   room,
@@ -22,6 +23,7 @@ function ChatWindow({
 }) {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -125,13 +127,22 @@ function ChatWindow({
           </div>
         </div>
         <div className="flex items-center gap-1 text-slate-400">
-          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+          <button
+            className="p-2 hover:bg-slate-100 rounded-full transition"
+            title="Voice call (coming soon)"
+          >
             <Phone size={18} />
           </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+          <button
+            className="p-2 hover:bg-slate-100 rounded-full transition"
+            title="Video call (coming soon)"
+          >
             <Video size={18} />
           </button>
-          <button className="p-2 hover:bg-slate-100 rounded-full transition">
+          <button
+            onClick={() => setShowInfo(true)}
+            className="p-2 hover:bg-slate-100 rounded-full transition"
+          >
             <Info size={18} />
           </button>
         </div>
@@ -242,6 +253,13 @@ function ChatWindow({
           <Send size={18} />
         </button>
       </form>
+      {showInfo && (
+        <RoomInfoPanel
+          room={room}
+          currentUserId={currentUserId}
+          onClose={() => setShowInfo(false)}
+        />
+      )}
     </div>
   );
 }
