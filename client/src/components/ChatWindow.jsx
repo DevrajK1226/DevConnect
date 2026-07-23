@@ -8,9 +8,12 @@ import {
   Check,
   CheckCheck,
   ArrowLeft,
+  Search,
+  X,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getSocket } from "../utils/socket";
+import { searchMessages } from "../utils/chatApi";
 import RoomInfoPanel from "./RoomInfoPanel";
 
 function ChatWindow({
@@ -24,12 +27,24 @@ function ChatWindow({
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!searchQuery.trim()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, typingUser]);
+
+  useEffect(() => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchResults(null);
+  }, [room?._id]);
 
   const getOtherMember = () =>
     room?.members.find((m) => m._id !== currentUserId);
@@ -68,6 +83,29 @@ function ChatWindow({
     if (socket && room) socket.emit("stop_typing", { roomId: room._id });
 
     setTimeout(() => setIsSending(false), 300);
+  };
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const results = await searchMessages(room._id, query);
+      setSearchResults(results);
+    } catch (err) {
+      console.error("Search failed:", err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const closeSearch = () => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchResults(null);
   };
 
   if (!room) {
@@ -128,6 +166,13 @@ function ChatWindow({
         </div>
         <div className="flex items-center gap-1 text-slate-400">
           <button
+            onClick={() => setShowSearch((prev) => !prev)}
+            className="p-2 hover:bg-slate-100 rounded-full transition"
+            title="Search messages"
+          >
+            <Search size={18} />
+          </button>
+          <button
             className="p-2 hover:bg-slate-100 rounded-full transition"
             title="Voice call (coming soon)"
           >
@@ -148,6 +193,24 @@ function ChatWindow({
         </div>
       </div>
 
+      {/* Search bar */}
+      {showSearch && (
+        <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
+          <Search size={16} className="text-slate-400 shrink-0" />
+          <input
+            autoFocus
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search in this conversation..."
+            className="flex-1 text-sm focus:outline-none"
+          />
+          <button onClick={closeSearch} className="text-slate-400 hover:text-slate-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3"
@@ -158,7 +221,45 @@ function ChatWindow({
           backgroundColor: "#fafbff",
         }}
       >
-        {messages.length === 0 ? (
+        {searchQuery.trim() ? (
+          searching ? (
+            <div className="text-center text-sm text-slate-400 mt-10">Searching...</div>
+          ) : searchResults?.length === 0 ? (
+            <div className="text-center text-sm text-slate-400 mt-10">
+              No messages found for "{searchQuery}"
+            </div>
+          ) : (
+            searchResults?.map((msg) => {
+              const isOwn = msg.sender._id === currentUserId;
+              const time = new Date(msg.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <div
+                  key={msg._id}
+                  className={`flex min-w-0 ${isOwn ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm break-all ${
+                      isOwn
+                        ? "bg-indigo-100 text-indigo-900 border border-indigo-200"
+                        : "bg-yellow-50 text-slate-800 border border-yellow-200"
+                    }`}
+                  >
+                    {!isOwn && (
+                      <p className="text-xs font-medium text-indigo-500 mb-0.5">
+                        {msg.sender.name}
+                      </p>
+                    )}
+                    <p>{msg.text}</p>
+                    <span className="text-[10px] text-slate-400 block mt-1">{time}</span>
+                  </div>
+                </div>
+              );
+            })
+          )
+        ) : messages.length === 0 ? (
           <div className="text-center text-sm text-slate-400 mt-10">
             No messages yet. Say hello 👋
           </div>
@@ -208,7 +309,7 @@ function ChatWindow({
             );
           })
         )}
-        {typingUser && (
+        {typingUser && !searchQuery.trim() && (
           <div className="flex justify-start">
             <div className="bg-white border border-slate-200 rounded-[22px] rounded-bl-md px-4 py-3 flex items-center gap-1 shadow-sm">
               <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
