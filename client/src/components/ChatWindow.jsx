@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Search,
   X,
+  Trash2,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getSocket } from "../utils/socket";
@@ -21,6 +22,7 @@ function ChatWindow({
   messages,
   currentUserId,
   onSendMessage,
+  onDeleteMessage,
   typingUser,
   onBack,
 }) {
@@ -31,6 +33,8 @@ function ChatWindow({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -106,6 +110,20 @@ function ChatWindow({
     setShowSearch(false);
     setSearchQuery("");
     setSearchResults(null);
+  };
+
+  const handleDeleteClick = (messageId) => {
+    if (confirmDeleteId === messageId) {
+      onDeleteMessage(messageId);
+      setConfirmDeleteId(null);
+    } else {
+      setConfirmDeleteId(messageId);
+      setTimeout(() => {
+        setConfirmDeleteId((current) =>
+          current === messageId ? null : current,
+        );
+      }, 3000);
+    }
   };
 
   if (!room) {
@@ -205,7 +223,10 @@ function ChatWindow({
             placeholder="Search in this conversation..."
             className="flex-1 text-sm focus:outline-none"
           />
-          <button onClick={closeSearch} className="text-slate-400 hover:text-slate-600">
+          <button
+            onClick={closeSearch}
+            className="text-slate-400 hover:text-slate-600"
+          >
             <X size={16} />
           </button>
         </div>
@@ -223,7 +244,9 @@ function ChatWindow({
       >
         {searchQuery.trim() ? (
           searching ? (
-            <div className="text-center text-sm text-slate-400 mt-10">Searching...</div>
+            <div className="text-center text-sm text-slate-400 mt-10">
+              Searching...
+            </div>
           ) : searchResults?.length === 0 ? (
             <div className="text-center text-sm text-slate-400 mt-10">
               No messages found for "{searchQuery}"
@@ -253,7 +276,9 @@ function ChatWindow({
                       </p>
                     )}
                     <p>{msg.text}</p>
-                    <span className="text-[10px] text-slate-400 block mt-1">{time}</span>
+                    <span className="text-[10px] text-slate-400 block mt-1">
+                      {time}
+                    </span>
                   </div>
                 </div>
               );
@@ -274,8 +299,27 @@ function ChatWindow({
             return (
               <div
                 key={msg._id}
-                className={`flex min-w-0 ${isOwn ? "justify-end" : "justify-start"} animate-message-in`}
+                className={`flex min-w-0 items-end gap-1.5 ${isOwn ? "justify-end" : "justify-start"} animate-message-in group`}
+                onMouseEnter={() => setHoveredMessageId(msg._id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
               >
+                {isOwn && hoveredMessageId === msg._id && (
+                  <button
+                    onClick={() => handleDeleteClick(msg._id)}
+                    className={`transition p-1 mb-1 ${
+                      confirmDeleteId === msg._id
+                        ? "text-red-500"
+                        : "text-slate-300 hover:text-red-500"
+                    }`}
+                    title={
+                      confirmDeleteId === msg._id
+                        ? "Click again to confirm"
+                        : "Delete message"
+                    }
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 <div
                   className={`max-w-xs sm:max-w-md px-4 py-3 rounded-[22px] text-sm shadow-sm break-all ${
                     isOwn

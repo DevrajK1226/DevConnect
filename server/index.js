@@ -97,6 +97,27 @@ io.on('connection', async (socket) => {
     }
   });
 
+  socket.on('delete_message', async ({ messageId, roomId }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) {
+        return socket.emit('error_message', { message: 'Message not found' });
+      }
+
+      // Only the original sender can delete their own message
+      if (message.sender.toString() !== socket.user._id.toString()) {
+        return socket.emit('error_message', { message: 'You can only delete your own messages' });
+      }
+
+      await Message.findByIdAndDelete(messageId);
+
+      io.to(roomId).emit('message_deleted', { messageId, roomId });
+    } catch (error) {
+      console.error('delete_message error:', error);
+      socket.emit('error_message', { message: 'Failed to delete message' });
+    }
+  });
+
   socket.on('disconnect', async () => {
     console.log(`❌ DISCONNECTED: ${socket.user.name}`);
     await User.findByIdAndUpdate(socket.user._id, { isOnline: false, lastSeen: new Date() });

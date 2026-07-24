@@ -97,16 +97,24 @@ function Chat() {
       }
     };
 
+    const handleMessageDeleted = ({ messageId, roomId }) => {
+      if (activeRoomRef.current && activeRoomRef.current._id === roomId) {
+        setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      }
+    };
+
     socket.on("receive_message", handleReceive);
     socket.on("user_typing", handleTyping);
     socket.on("user_stop_typing", handleStopTyping);
     socket.on("messages_read", handleMessagesRead);
+    socket.on("message_deleted", handleMessageDeleted);
 
     return () => {
       socket.off("receive_message", handleReceive);
       socket.off("user_typing", handleTyping);
       socket.off("user_stop_typing", handleStopTyping);
       socket.off("messages_read", handleMessagesRead);
+      socket.off("message_deleted", handleMessageDeleted);
     };
   }, []);
 
@@ -134,6 +142,12 @@ function Chat() {
     const socket = getSocket();
     if (!socket || !activeRoom) return;
     socket.emit("send_message", { roomId: activeRoom._id, text });
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    const socket = getSocket();
+    if (!socket || !activeRoom) return;
+    socket.emit("delete_message", { messageId, roomId: activeRoom._id });
   };
 
   const handleSelectUserForNewChat = async (selectedUser) => {
@@ -193,6 +207,7 @@ function Chat() {
           messages={messages}
           currentUserId={user?._id}
           onSendMessage={handleSendMessage}
+          onDeleteMessage={handleDeleteMessage}
           typingUser={typingUser}
           onBack={() => setShowSidebarMobile(true)}
         />
